@@ -1,0 +1,43 @@
+ARG PYTHON_VERSION=3.7
+ARG DJANGO_ROOT=./src
+
+FROM python:${PYTHON_VERSION} as base
+ENV PYTHONUNBUFFERED 1
+RUN mkdir /code
+RUN mkdir /config
+RUN mkdir /data
+RUN mkdir /data/logs
+WORKDIR /code
+
+
+# Install dependencies
+# RUN apt-get update && apt-get install -y inkscape && apt-get clean
+COPY ./docker/django/requirements.txt /config/
+RUN pip install --no-cache-dir -r /config/requirements.txt
+
+#RUN pip install m2crypto==0.33.0
+# Copy code
+WORKDIR /code
+
+
+#####################DEVELOPMENT##################################
+FROM base as dev
+ARG DJANGO_ROOT=./src
+WORKDIR /code
+COPY ./src /code
+RUN ls /code
+RUN pip install --no-cache-dir -r requirements.txt
+
+############################PRODUCTION###################################
+FROM base as prod
+ARG DJANGO_ROOT=./src
+
+COPY ${DJANGO_ROOT} /code
+WORKDIR /code
+RUN pip install --no-cache-dir -r requirements.txt
+COPY ./docker/django/docker-entrypoint.sh /root
+RUN chmod +x /root/docker-entrypoint.sh
+EXPOSE 8000
+#ENTRYPOINT ["/root/docker-entrypoint.sh"]
+
+#HEALTHCHECK CMD curl -f http://localhost/ || exit 1
